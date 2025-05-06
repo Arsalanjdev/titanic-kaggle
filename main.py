@@ -31,33 +31,15 @@ def generate_batch_tensor(df: pd.DataFrame) -> (torch.Tensor, torch.Tensor | Non
     :return: A tuple consisting of the input tensor (float32) and the target tensor (long). if no Survived coloumn is
     provided, return input tensor and None.
     """
-    input_set = df.drop("Survived", axis=1).values.astype(np.float32)
     if "Survived" not in df.columns:
-        return input_set, None
-
+        return torch.tensor(df.values.astype(np.float32),dtype=torch.float32), None
+    input_set = df.drop("Survived", axis=1).values.astype(np.float32)
     target_set = df["Survived"].values.astype(np.long)
 
 
     input_tensor = torch.tensor(input_set, dtype=torch.float32)
     target_tensor = torch.tensor(target_set, dtype=torch.long)
     return input_tensor, target_tensor
-
-
-# titanic_cvf = pd.read_csv("train.csv")
-#
-# titanic_cvf["Sex"] = titanic_cvf.Sex.map(lambda x: 1 if x == "female" else 0) #encoding the gender
-# titanic_cvf["Embarked"] = titanic_cvf.Embarked.map({"C": 0, "Q": 1, "S": 2}) #Encoding the embark port
-# titanic_cvf = titanic_cvf.drop(["PassengerId","Name","Cabin","Ticket"], axis=1)
-# # Handle missing values
-# titanic_cvf["Age"].fillna(titanic_cvf["Age"].median(), inplace=True)
-# titanic_cvf["Embarked"].fillna(2, inplace=True)  # Most common value
-#
-# test_set = titanic_cvf["Survived"].values.astype(np.int64)
-# training_set =titanic_cvf.drop("Survived",axis=1).values.astype(np.float32)
-#
-#
-# training_tensor = torch.tensor(training_set,dtype=torch.float32)
-# test_tensor = torch.tensor(test_set,dtype=torch.long)
 
 titanic_train_data = preprocessing_data("train.csv")
 input_tensor, target_tensor = generate_batch_tensor(titanic_train_data)
@@ -99,7 +81,7 @@ losses = [] # Tracking the loss of the model
 acc = [] # Tracking the accuracy of the model
 
 
-for epoch in range(100):
+for epoch in range(800):
     total_loss = 0
     accuracy_total = 0
     correct_predictions = 0
@@ -120,7 +102,7 @@ for epoch in range(100):
     losses.append(avg_loss)
     epoch_accuracy = correct_predictions / total_samples
     acc.append(epoch_accuracy)
-    print(f"Epoch {epoch:03d} — avg loss: {avg_loss:.4f}")
+    print(f"Epoch {epoch + 1} — avg loss: {avg_loss:.4f} - Accuracy: {epoch_accuracy:.4f}")
     writer.add_scalar("avg_loss",avg_loss,epoch)
 
 print("Training complete and plots generated.")
@@ -143,13 +125,19 @@ test_path = "test.csv"
 #preparing data
 df = preprocessing_data(test_path)
 
-dataset = TensorDataset(input_tensor, target_tensor)
-loader = DataLoader(dataset, batch_size=32, shuffle=True)
-for batch_index, (input_tensor, target) in enumerate(loader):
+input_tensor, _ = generate_batch_tensor(df)
+# model.eval() #evaluation mode
+with torch.no_grad():
     output = model(input_tensor)
-    output_probs = torch.sigmoid(output)
-    prediction = (output_probs > 0.5).float()
-    class_labels = torch.argmax(prediction,dim=1).tolist()
-    print(class_labels)
+output_probs = torch.softmax(output,dim=1)
+# predictions = (output_probs > 0.5).float()
+class_labels = torch.argmax(output_probs, dim=1).tolist()
+
+result_df = pd.DataFrame({
+    'Survived':    class_labels
+})
+df = result_df.reset_index().rename(columns={'index':'PassengerId'})
+df.to_csv("survived.csv", index=False)
+print("Surivorship infered and saved into survived.csv. Done!")
 
 
