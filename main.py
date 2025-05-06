@@ -9,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 # preprocessing the data
 
-def preprocessing_data(csv_path: str) -> pd.DataFrame:
+def preprocessing_data(csv_path: str,remove_id:bool = True) -> pd.DataFrame:
     """
     Preprocesses the titanic CSV file. Dropping irrelevant columns and filling in missing values.
     :param csv_path: path to the csv file
@@ -18,7 +18,7 @@ def preprocessing_data(csv_path: str) -> pd.DataFrame:
     df = pd.read_csv(csv_path)
     df["Sex"] = df.Sex.map(lambda x: 1 if x == "female" else 0)  # encoding the gender
     df["Embarked"] = df.Embarked.map({"C": 0, "Q": 1, "S": 2})  # Encoding the embark port
-    df = df.drop(["PassengerId", "Name", "Cabin", "Ticket"], axis=1) #Dropping the IDs, names, cabins and Ticket
+    df = df.drop(["Name", "Cabin", "Ticket"], axis=1) #Dropping the names, cabins and Ticket
     # Handle missing values
     df["Age"] = df["Age"].fillna(df["Age"].median())
     df["Embarked"] = df["Embarked"].fillna(2)  # Most common value
@@ -81,7 +81,7 @@ losses = [] # Tracking the loss of the model
 acc = [] # Tracking the accuracy of the model
 
 
-for epoch in range(800):
+for epoch in range(1200):
     total_loss = 0
     accuracy_total = 0
     correct_predictions = 0
@@ -121,7 +121,7 @@ plt.savefig("acc.png")
 
 # inference phase
 test_path = "test.csv"
-
+passenger_ids = pd.read_csv(test_path)["PassengerId"]
 #preparing data
 df = preprocessing_data(test_path)
 
@@ -134,9 +134,10 @@ output_probs = torch.softmax(output,dim=1)
 class_labels = torch.argmax(output_probs, dim=1).tolist()
 
 result_df = pd.DataFrame({
+    "PassengerId": passenger_ids,
     'Survived':    class_labels
 })
-df = result_df.reset_index().rename(columns={'index':'PassengerId'})
+df = result_df
 df.to_csv("survived.csv", index=False)
 print("Surivorship infered and saved into survived.csv. Done!")
 
