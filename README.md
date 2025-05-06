@@ -1,5 +1,6 @@
 # My Submission to Kaggle's Titanic Challenge 
-[https://www.kaggle.com/competitions/titanic/overview](Challenge's link)
+[Challenge's link](https://www.kaggle.com/competitions/titanic/overview)
+
 
 My current model peaked at a score of **0.73205**. All future enhancements would take place in this repository. The model is made up of fully connected neuron layers utilizing cross entropy loss and softmax. In the future, dropouts and feature engineering would be used to improve the score and reliability of the model.
 
